@@ -3,16 +3,16 @@ import math
 # Ideal Gas
 
 class IdealGas:
-    T_ref = 77
+
 
     def __init__(self):
         pass
 
     @classmethod
-    def enthalpy(cls, Tg):
+    def enthalpy(cls, Tg, T_ref = 77):
 
         # Convert To K
-        T_ref = (cls.T_ref-32)*5/9 + 237.15
+        T_ref = (T_ref-32)*5/9 + 237.15
         Tg_K = (Tg-32)*5/9 + 237.15
 
         # Reference Enthalpy:
