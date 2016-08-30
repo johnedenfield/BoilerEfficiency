@@ -68,8 +68,8 @@ class Air:
     @property
     def H2Ovv_wb(self):
         # Volume of O2 wet bases = Moles of O2 Wet Bases
-        sh = self.specific_humidity
-        return sh/H2Ov.MW*self.MW_wb*100
+        W = self.humidity_ratio
+        return W/(H2Ov.MW/self.MW_db + W)*100
 
     def enthalpy(self,Tg):
 
