@@ -21,6 +21,12 @@ class Coal:
     def CB(self):
         return self.C - self.UBC
 
+    @property
+    def HHVc(self):
+        # Higher Heating Value Calculated using Dulong's formula
+
+        return 14544 * self.C/100 +62028*(self.H/100- self.O/100/8) + 4050*self.S/100
+
 
     def enthalpy(self, T):
         cp = 0.4063

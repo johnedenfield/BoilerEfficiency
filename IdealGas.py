@@ -10,18 +10,14 @@ class IdealGas:
 
     @classmethod
     def enthalpy(cls, Tg, T_ref = 77):
-
-        # Convert To K
-        T_ref = (T_ref-32)*5/9 + 237.15
-        Tg_K = (Tg-32)*5/9 + 237.15
-
         # Reference Enthalpy:
+
         # change in enthalpy = the integral of the cp equation  a + bT + cT^2 +dT^3
         # a(T2-T1) + b/2 (T2^2-T1^2)  +C/3(T2^3 -T1^3) + d/4 (T2^4- T1 ^4)
-        dH = cls.coef['a']*(Tg_K -T_ref) + \
-                cls.coef['b']/2*(Tg_K**2 - T_ref**2) +\
-                cls.coef['c']/3 * (Tg_K **3 - T_ref**3) + \
-                cls.coef['d']/4 * (Tg_K **4 -T_ref**4)
+        dH = cls.coef['a']*(Tg -T_ref) + \
+                cls.coef['b']/2*(Tg**2 - T_ref**2) +\
+                cls.coef['c']/3*(Tg **3 - T_ref**3) + \
+                cls.coef['d']/4*(Tg **4 - T_ref**4)
 
 
 

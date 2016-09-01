@@ -71,10 +71,19 @@ class Air:
         W = self.humidity_ratio
         return W/(H2Ov.MW/self.MW_db + W)*100
 
-    def enthalpy(self,Tg):
+    def enthalpy(self,Tg,T_ref = 77):
 
-        h_O2 = self.O2v_wb/100 *O2.enthalpy(Tg)
-        h_N2 = self.N2v_wb/100 *N2.enthalpy(Tg)
-        h_H2Ov = self.H2Ovv_wb/100 *H2Ov.enthalpy(Tg)
+        h_O2 = self.O2v_wb/100 *O2.enthalpy(Tg, T_ref)
+        h_N2 = self.N2v_wb/100 *N2.enthalpy(Tg, T_ref)
+        h_H2Ov = self.H2Ovv_wb/100 *H2Ov.enthalpy(Tg, T_ref)
 
         return h_O2 + h_N2 + h_H2Ov
+
+    def cp(self,Tg):
+
+        cp_O2 = O2.cp(Tg)
+        cp_N2 = N2.cp(Tg)
+        cp_H2Ov = H2Ov.cp(Tg)
+
+        # Return mole weighted cp at Tg
+        return cp_O2 * self.O2v_wb/100 +cp_N2*self.N2v_wb/100  +cp_H2Ov * self.H2Ovv_wb/100
