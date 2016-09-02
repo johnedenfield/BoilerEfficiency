@@ -13,6 +13,8 @@ class Coal:
         self.Ash = Ash
         self.CinAsh = CinAsh
 
+        self.name ='Coal'
+
     @property
     def UBC(self):
         return self.CinAsh * self.Ash / (100.0 - self.CinAsh)

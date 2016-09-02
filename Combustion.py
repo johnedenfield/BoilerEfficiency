@@ -1,34 +1,19 @@
 __author__ = 'John.Edenfield'
 from IdealGas import SO2, CO2, N2, H2Ov, O2, CO
+from Coal import Coal
+from Air import Air
+
+class Combustion():
+    def __init__(self):
+      self.coal=Coal()
+      self.air= Air()
+
+    def O2inFG(self):
+        return self.O2inFG
 
 
-class Combustion:
-    def __init__(self, coal, air, O2inFG=2.2, COinFG=200):
-        self.air = air
-        self.coal = coal
-
-        # Combustion
-        self.O2inFG = O2inFG
-        self.COinFG = COinFG
-
-    @property
-    def combustion_air(self):
-        return CombustionAir(self)
-
-    @property
-    def flue_gas(self):
-        return FlueGas(self)
-
-
-
-class CombustionAir:
-
-    def __init__(self, combustion):
-        self.air = combustion.air
-        self.coal = combustion.coal
-
-        # Combustion
-        self.O2inFG = combustion.O2inFG
+    def COinFG(self):
+        return self.COinFG
 
     @property
     def theoretical_air_moles(self):
@@ -56,7 +41,7 @@ class CombustionAir:
 
     @property
     def excess_air_moles(self):
-        return self.theoretical_air_moles * self.O2inFG / ( self.air.O2v_wb - self.O2inFG)
+        return self.theoretical_air_moles * self.O2inFG / (self.air.O2v_wb - self.O2inFG)
 
     @property
     def excess_air_mass(self):
@@ -64,37 +49,27 @@ class CombustionAir:
 
     @property
     def percent_excess_air(self):
-        return self.excess_air_mass / self.mass * 100
+        return self.excess_air_mass / self.combustion_air_mass * 100
 
     @property
-    def moles(self):
+    def combustion_air_moles(self):
         return self.theoretical_air_moles + self.excess_air_moles
 
     @property
-    def mass(self):
-        return self.moles * self.air.MW_wb
+    def combustion_air_mass(self):
+        return self.combustion_air_moles * self.air.MW_wb
 
 
-    def enthalpy(self, Tg):
+    def combustion_air_h(self, Tg, T_ref=77):
         # Btu per lb coal burned
-        return self.mass * self.air.enthalpy(Tg)
+        return self.combustion_air_mass * self.air.enthalpy(Tg, T_ref)
 
-    def cp(self, Tg):
+    def combustion_air_cp(self, Tg):
         return self.air.cp(Tg)
 
-
-
-
-class FlueGas:
-
-    def __init__(self, combustion):
-        self.coal=combustion.coal
-        self.air = combustion.air
-        self.combustion_air=combustion.combustion_air
-        self.COinFG=combustion.COinFG
-
+    # Flue gas properties
     @property
-    def moles(self):
+    def fg_moles(self):
         fg = dict()
         fg['CO2'] = (self.coal.CB / 100) / 12
         # Moles of SO2
@@ -102,20 +77,20 @@ class FlueGas:
         # Moles of H2O
         fg['H2Of'] = (self.coal.H / 100) / 2 + (self.coal.H2O / 100) / 18
 
-        fg['H2Oa'] = self.air.H2Ovv_wb / 100 * self.combustion_air.moles
+        fg['H2Oa'] = self.air.H2Ovv_wb / 100 * self.combustion_air_moles
         # Moles of O2
-        fg['O2'] = self.air.O2v_wb / 100 * self.combustion_air.excess_air_moles
+        fg['O2'] = self.air.O2v_wb / 100 * self.excess_air_moles
         # Moles of N2
-        fg['N2'] = (self.coal.N / 100) / 28 + self.air.N2v_wb / 100 * self.combustion_air.moles
+        fg['N2'] = (self.coal.N / 100) / 28 + self.air.N2v_wb / 100 * self.combustion_air_moles
 
         fg['Total'] = fg['CO2'] + fg['SO2'] + fg['H2Of'] + fg['H2Oa'] + fg['O2'] + fg['N2']
 
         return fg
 
     @property
-    def mass(self):
+    def fg_mass(self):
         fg_mass = dict()
-        fg = self.moles
+        fg = self.fg_moles
 
         # Mass of CO2
         fg_mass['CO2'] = fg['CO2'] * CO2.MW
@@ -135,13 +110,14 @@ class FlueGas:
 
         return fg_mass
 
-
+    @property
     def co_losses(self):
         Hv = 4350.54  # Btu/lb
-        return self.COinFG / 10E6 * self.moles['total'] * CO.MW * Hv
+        return self.COinFG / 10E6 * self.fg_moles['total'] * CO.MW * Hv
 
 
-    def enthalpy(self, Tg, T_ref =77):
+    def fg_sensible_h(self, Tg, T_ref=77):
+        # Btu / lb of Coal
         h = dict()
 
         h['O2'] = O2.enthalpy(Tg, T_ref)
@@ -153,17 +129,19 @@ class FlueGas:
         h['CO2'] = CO2.enthalpy(Tg, T_ref)
 
         # Latent Heat Loses due to moisture in fuel and hydrogen combustion
-        fg_mass = self.mass
+        fg_mass = self.fg_mass
 
         sensible = h['O2'] * fg_mass['O2'] + h['N2'] * fg_mass['N2'] + h['H2O'] * (fg_mass['H2Oa'] + fg_mass['H2Of']) + \
                    h['SO2'] * fg_mass['SO2'] + h['CO2'] * fg_mass['CO2']
 
-        latent = 1050.87 * fg_mass['H2Of']
 
-        return sensible + latent
+        return sensible
 
+    @property
+    def fg_latent_h(self):
+        return 1050.87 * self.fg_mass['H2Of']
 
-    def cp(self, Tg):
+    def fg_cp(self, Tg):
         cp = dict()
 
         cp['O2'] = O2.cp(Tg)
@@ -172,8 +150,10 @@ class FlueGas:
         cp['SO2'] = SO2.cp(Tg)
         cp['CO2'] = CO2.cp(Tg)
 
-        fg = self.moles
+        fg = self.fg_moles
         CP = cp['O2'] * fg['O2'] + cp['N2'] * fg['N2'] + cp['H2O'] * (fg['H2Oa'] + fg['H2Of']) + cp['SO2'] * fg['SO2'] + \
-            cp['CO2'] * fg['CO2']
+             cp['CO2'] * fg['CO2']
 
-        return CP/fg['Total']
+        return CP / fg['Total']
+
+

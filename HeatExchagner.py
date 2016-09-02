@@ -1,71 +1,98 @@
 __author__ = 'John.Edenfield'
+from Combustion import Combustion
 import math
 
-class HeatExchanger:
 
-    def __init__(self):
-        pass
-
-
-    def lmtd(self, Th_in,Th_out,Tc_in,Tc_out):
-
-        if self.flow == 'counter':
-            dt1 = Th_out - Tc_in
-            dt2 = Th_in  -Tc_out
-
-        elif self.flow == 'parallel':
-            dt1 = Th_in - Tc_in
-            dt2 = Th_out  -Tc_out
-
-        return (dt1-dt2)/math.log(math.e,dt1/dt2)
-
-    def ua(self):
-
-        pass
-
-
-
-class AirHeater(HeatExchanger):
+class AirHeater():
     # Air heater heat exchanger
-    flow ='counter'
+    flow = 'counter'
 
-    def __init__(self,UA, Ta_in,combustion_air,flue_gas, leakage = 3 ):
+    def __init__(self,Ta_in, Ta_out, Tg_in, Tg_out, leakage=3):
 
-        self.leakage = leakage # Leakage %
-        self.Ta_in = Ta_in # Temperature of air into the Air Heater
-        self.combustion_air = combustion_air
-        self.flue_gas = flue_gas
+        self.leakage = leakage  # Leakage %
+        self.Ta_in = Ta_in  # Temperature of air into the Air Heater
+        self.Ta_out= Ta_out
 
-    @property.setter
-    def Tg_in(self, T):
-        # Setting Tg in changes Tg_out and Ta_out based on UA
+        self.Tg_in = Tg_in  # gas temperature into the air heater (EEGT)
+        self.Tg_out= Tg_out
 
-        mfg = self.flue_gas.mass['Total']
-        ma = self.combustion_air.mass
+        self.combustion = Combustion()
+
+        self.UA = self.Q_fg/self.lmtd
 
 
-        Tg_out = self.Tg_out  # Need To Guess an new Tg_out
+    def Solve_Ta_out(self):
 
-        dH = self.flue_gas.enthalpy(T,Tg_out)
+        T_guess = (self.Tg_in + self.Ta_in) / 2
 
-        Q = dH * self.flue_gas.mass['Total']
+        delta = 0.001
 
-        Ta_out= self.Ta_out
+        while True:
 
-        self.air.enthalpy(Ta_out, self.Ta_in )
-        pass
+            self.Ta_out = T_guess
+            f0 = self.Q_ca - self.Q_fg
+
+            self.Ta_out = T_guess + delta
+            f1 = self.Q_ca - self.Q_fg
+
+            T_inc = f1 * -delta / (f0 - f1)
+            if abs(f0) < 0.01:
+                self.Ta_out = T_guess- T_inc
+                break
+
+            T_guess = T_guess - T_inc
+
+
+    def Solve_Tg_out(self):
+
+        delta = 0.001
+        T_guess = (self.Ta_in + self.Tg_in) / 2
+
+        while True:
+
+            self.Tg_out = T_guess
+
+            self.Solve_Ta_out()
+            f0 = self.Q_UA - self.Q_fg
+
+            self.Tg_out = T_guess + delta
+            self.Solve_Ta_out()
+            f1 = self.Q_UA - self.Q_fg
+
+            T_inc = f1 *- delta / (f0 - f1)
+
+            if abs(f0) < 0.01:
+                self.Tg_out = T_guess - T_inc
+                self.Solve_Ta_out()
+                break
+
+            T_guess = T_guess - T_inc
+
+    @property
+    def lmtd(self):
+
+        dt1 = self.Tg_out - self.Ta_in
+        dt2 = self.Tg_in - self.Ta_out
+
+        return (dt1 - dt2) / math.log(dt1 / dt2)
 
 
     @property
-    def Tg_out(self):
-        pass
+    def Q_UA(self):
+        return self.UA * self.lmtd
 
     @property
-    def Ta_in(self):
-        pass
+    def Q_fg(self):
+        return self.combustion.fg_sensible_h(self.Tg_in, self.Tg_out)
 
     @property
-    def Ta_out(self):
-        pass
+    def Q_ca(self):
+        return self.combustion.combustion_air_h(self.Ta_out, self.Ta_in)
+
+    def print(self):
+
+        print(' UA ={:.2f} \n Q_fg = {:.2f}  --> Q_ca = {:.2f} --> Q_UA = {:.2f} \n lmtd = {:.2f} '.format(self.UA,self.Q_fg,self.Q_ca,self.Q_UA, self.lmtd))
+        print(' Tg_in  = {:.2f}  -------> Tg_out = {:.2f}'.format(self.Tg_in,self.Tg_out))
+        print(' Ta_out = {:.2f} <-------  Ta_in  = {:.2f}'.format(self.Ta_out,self.Ta_in))
 
 
