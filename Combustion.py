@@ -4,16 +4,11 @@ from Coal import Coal
 from Air import Air
 
 class Combustion():
-    def __init__(self):
-      self.coal=Coal()
-      self.air= Air()
-
-    def O2inFG(self):
-        return self.O2inFG
-
-
-    def COinFG(self):
-        return self.COinFG
+    def __init__(self,O2inFg=2.5,COinFG =200):
+        self.coal=Coal()
+        self.air= Air()
+        self.O2inFG = O2inFg
+        self.COinFG = COinFG
 
     @property
     def theoretical_air_moles(self):
